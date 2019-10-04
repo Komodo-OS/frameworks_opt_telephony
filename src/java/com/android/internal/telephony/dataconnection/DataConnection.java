@@ -315,6 +315,7 @@ public class DataConnection extends StateMachine {
     static final int EVENT_RESET = BASE + 24;
     static final int EVENT_REEVALUATE_RESTRICTED_STATE = BASE + 25;
     static final int EVENT_REEVALUATE_DATA_CONNECTION_PROPERTIES = BASE + 26;
+    static final int EVENT_NR_STATE_CHANGED = BASE + 27;
     protected static final int EVENT_RETRY_CONNECTION = BASE + 27;
 
     private static final int CMD_TO_STRING_COUNT =
@@ -355,6 +356,8 @@ public class DataConnection extends StateMachine {
         sCmdToString[EVENT_REEVALUATE_DATA_CONNECTION_PROPERTIES - BASE] =
                 "EVENT_REEVALUATE_DATA_CONNECTION_PROPERTIES";
         sCmdToString[EVENT_RETRY_CONNECTION - BASE] = "EVENT_RETRY_CONNECTION";
+        sCmdToString[EVENT_NR_STATE_CHANGED - BASE] =
+                "EVENT_NR_STATE_CHANGED";
     }
     // Convert cmd to string or null if unknown
     static String cmdToString(int cmd) {
@@ -1002,9 +1005,9 @@ public class DataConnection extends StateMachine {
 
         // NR 5G Non-Standalone use LTE cell as the primary cell, the ril technology is LTE in this
         // case. We use NR 5G TCP buffer size when connected to NR 5G Non-Standalone network.
-        if ((rilRat == ServiceState.RIL_RADIO_TECHNOLOGY_LTE
-                || rilRat == ServiceState.RIL_RADIO_TECHNOLOGY_LTE_CA)
-                && isNRConnected()) {
+        if (mTransportType == AccessNetworkConstants.TRANSPORT_TYPE_WWAN
+                && rilRat == ServiceState.RIL_RADIO_TECHNOLOGY_LTE && isNRConnected()
+                && mPhone.getServiceStateTracker().getNrContextIds().contains(mCid)) {
             ratName = RAT_NAME_5G;
         }
 
@@ -1063,7 +1066,7 @@ public class DataConnection extends StateMachine {
                     break;
                 case ServiceState.RIL_RADIO_TECHNOLOGY_LTE_CA:
                     // Use NR 5G TCP buffer size when connected to NR 5G Non-Standalone network.
-                    if (isNRConnected()) {
+                    if (RAT_NAME_5G.equals(ratName)) {
                         sizes = TCP_BUFFER_SIZES_NR;
                     } else {
                         sizes = TCP_BUFFER_SIZES_LTE_CA;
